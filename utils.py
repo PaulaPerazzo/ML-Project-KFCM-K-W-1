@@ -44,6 +44,9 @@ class KernelFunction:
 class KernelWidthParameters:
 
     def __init__(self, kernel):
+        """"
+        Eq. (14)
+        """
         self.kernel = kernel
 
     def compute(self, X, G, U, m):
@@ -107,7 +110,7 @@ class KernelWidthParameters:
 
 class FuzzyClusterPrototypes:
     """
-    Eq. (15a) do KFCM-K-W-1.
+    Eq. (15a)
     """
 
     def __init__(self, kernel):
@@ -150,6 +153,60 @@ class FuzzyClusterPrototypes:
         return G_new
 
 
+# ---------- compute membership degrees ---------- #
+
+class FuzzyMemberships:
+    """
+    Eq. (16a).
+    """
+
+    def __init__(self, kernel):
+        self.kernel = kernel
+
+    def compute(self, X, G, m):
+        """
+        updates membership degrees u_ki
+
+        params
+        ----------
+        X : (n, p)
+            input data
+        G : (c, p)
+            fuzzy prototypes
+        m : 
+            fuzzy exponent
+
+        returns new matrix
+        """
+        n, p = X.shape
+        c = G.shape[0]
+        U_new = np.zeros((n, c))
+
+        Kxg = np.zeros((n, c))
+
+        for k in range(n):
+            for i in range(c):
+                Kxg[k, i] = self.kernel(X[k], G[i])
+
+        # each u_ki
+        for k in range(n):
+            for i in range(c):
+                num = 2 - 2 * Kxg[k, i]
+                denom_sum = 0.0
+                
+                for h in range(c):
+                    denom = 2 - 2 * Kxg[k, h]
+                    denom = max(denom, 1e-12) # small number to avoid 0 divisions
+                    denom_sum += (num / denom) ** (1.0 / (m - 1))
+
+                U_new[k, i] = 1.0 / denom_sum
+
+        # nromalization
+        U_new /= U_new.sum(axis=1, keepdims=True)
+
+        return U_new
+
+
 # ---- this is just an example of how to use the functions and to know if the cost function j decreased ---- #
 # ----- so you can just ignore this part if you want ----- #
 
@@ -163,20 +220,19 @@ U = U / U.sum(axis=1, keepdims=True)
 m = 2.0
 G_init = np.random.rand(2, 3)
 
-# calculate new s values 
 s = np.ones(X.shape[1])
 kernel = KernelFunction(s)
+
 width_calc = KernelWidthParameters(kernel)
 s_new = width_calc.compute(X, G_init, U, m)
+print("new s: ", s_new)
 
-# update kernel with new s
 new_kernel = KernelFunction(s_new)
 
-# new prototypes
 proto_calc = FuzzyClusterPrototypes(new_kernel)
 G_new = proto_calc.compute(X, U, m, G_init)
 
-print("old prototypes (G_init):\n", G_init)
+print("\old prototyoes (G_init):\n", G_init)
 print("new prototypes (G_new):\n", G_new)
 
 def objective_J(X, U, m, G, kernel):
@@ -190,8 +246,8 @@ def objective_J(X, U, m, G, kernel):
     return 2.0 * J
 
 J_old = objective_J(X, U, m, G_init, kernel)
-J_new = objective_J(X, U, m, G_new,  kernel)
+J_new = objective_J(X, U, m, G_new, new_kernel)
 
 print("J old: ", J_old)
 print("J new: ", J_new)
-print("was the result better? ", J_new < J_old)
+print("did it get better? ", J_new < J_old)
