@@ -205,6 +205,27 @@ class FuzzyMemberships:
         U_new /= U_new.sum(axis=1, keepdims=True)
 
         return U_new
+    
+
+# ---------- COST FUNCTION ---------- #
+
+class CostFunction:
+    """
+    Eq. 11
+    """
+
+    def __init__(self, kernel):
+        self.kernel = kernel
+
+    def compute(self, X, U, G, m):
+        n, c = U.shape
+        J = 0.0
+
+        for i in range(c):
+            for k in range(n):
+                J += (U[k, i] ** m) * (2 - 2 * self.kernel(X[k], G[i]))
+        
+        return J
 
 
 # ---- this is just an example of how to use the functions and to know if the cost function j decreased ---- #
@@ -235,18 +256,8 @@ G_new = proto_calc.compute(X, U, m, G_init)
 print("\old prototyoes (G_init):\n", G_init)
 print("new prototypes (G_new):\n", G_new)
 
-def objective_J(X, U, m, G, kernel):
-    J = 0.0
-    n, c = U.shape
-
-    for i in range(c):
-        for k in range(n):
-            J += (U[k, i]**m) * (1.0 - kernel(X[k], G[i])) 
-    
-    return 2.0 * J
-
-J_old = objective_J(X, U, m, G_init, kernel)
-J_new = objective_J(X, U, m, G_new, new_kernel)
+J_old = CostFunction(kernel).compute(X, U, G_init, m)
+J_new = CostFunction(new_kernel).compute(X, U, G_new, m)
 
 print("J old: ", J_old)
 print("J new: ", J_new)
