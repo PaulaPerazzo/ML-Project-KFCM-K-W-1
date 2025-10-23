@@ -186,7 +186,7 @@ class FuzzyMemberships:
 
         for k in range(n):
             for i in range(c):
-                Kxg[k, i] = self.kernel(X[k], G[i])
+                Kxg[k, i] = min(self.kernel(X[k], G[i]), 1 - 1e-10)
 
         # each u_ki
         for k in range(n):
@@ -229,36 +229,36 @@ class CostFunction:
 
 
 # ---- this is just an example of how to use the functions and to know if the cost function j decreased ---- #
-# ----- so you can just ignore this part if you want ----- #
+# ----- so you can just ignore this part ----- #
 
 # usage example
-np.random.seed(0)
+# np.random.seed(0)
 
-# ex data
-X = np.random.rand(5, 3)
-U = np.random.rand(5, 2)
-U = U / U.sum(axis=1, keepdims=True)
-m = 2.0
-G_init = np.random.rand(2, 3)
+# # ex data
+# X = np.random.rand(5, 3)
+# U = np.random.rand(5, 2)
+# U = U / U.sum(axis=1, keepdims=True)
+# m = 2.0
+# G_init = np.random.rand(2, 3)
 
-s = np.ones(X.shape[1])
-kernel = KernelFunction(s)
+# s = np.ones(X.shape[1])
+# kernel = KernelFunction(s)
 
-width_calc = KernelWidthParameters(kernel)
-s_new = width_calc.compute(X, G_init, U, m)
-print("new s: ", s_new)
+# width_calc = KernelWidthParameters(kernel)
+# s_new = width_calc.compute(X, G_init, U, m)
+# print("new s: ", s_new)
 
-new_kernel = KernelFunction(s_new)
+# new_kernel = KernelFunction(s_new)
 
-proto_calc = FuzzyClusterPrototypes(new_kernel)
-G_new = proto_calc.compute(X, U, m, G_init)
+# proto_calc = FuzzyClusterPrototypes(new_kernel)
+# G_new = proto_calc.compute(X, U, m, G_init)
 
-print("\old prototyoes (G_init):\n", G_init)
-print("new prototypes (G_new):\n", G_new)
+# print("\old prototyoes (G_init):\n", G_init)
+# print("new prototypes (G_new):\n", G_new)
 
-J_old = CostFunction(kernel).compute(X, U, G_init, m)
-J_new = CostFunction(new_kernel).compute(X, U, G_new, m)
+# J_old = CostFunction(kernel).compute(X, U, G_init, m)
+# J_new = CostFunction(new_kernel).compute(X, U, G_new, m)
 
-print("J old: ", J_old)
-print("J new: ", J_new)
-print("did it get better? ", J_new < J_old)
+# print("J old: ", J_old)
+# print("J new: ", J_new)
+# print("did it get better? ", J_new < J_old)
