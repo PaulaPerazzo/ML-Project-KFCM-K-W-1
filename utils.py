@@ -197,7 +197,12 @@ class FuzzyMemberships:
                 for h in range(c):
                     denom = 2 - 2 * Kxg[k, h]
                     denom = max(denom, 1e-12) # small number to avoid 0 divisions
-                    denom_sum += (num / denom) ** (1.0 / (m - 1))
+
+                    if m != 1.0:
+                        denom_sum += (num / denom) ** (1.0 / (m - 1))
+
+                    if m == 1.0:
+                        denom_sum += (num / denom) ** (1.0 / 1e-12)
 
                 U_new[k, i] = 1.0 / denom_sum
 

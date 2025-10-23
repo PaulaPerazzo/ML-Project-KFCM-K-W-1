@@ -86,7 +86,7 @@ class KFCM_K_W_1:
 np.random.seed(24)
 X = np.random.rand(8, 3)
 
-model = KFCM_K_W_1(n_clusters=2, m=2.0, max_iter=50, tol=1e-6, random_state=24)
+model = KFCM_K_W_1(n_clusters=3, m=2.0, max_iter=50, tol=1e-6, random_state=24)
 model.fit(X)
 
 print("\nFinal widths (s):", model.s)
