@@ -68,28 +68,35 @@ class KFCM_K_W_1:
             print(f"[Iter {t+1}] J_old={J_old:.6f}  J_new={J_new:.6f}  Δ={abs(J_new - J_old):.6e}")
 
             # stop criterion
-            if abs(J_new - J_old) < self.tol:
-                print(f"convergence in {t+1} iterations (ΔJ < {self.tol})")
-                break
+            # if abs(J_new - J_old) < self.tol:
+            #     print(f"convergence in {t+1} iterations (ΔJ < {self.tol})")
+            #     break
 
             J_old = J_new
 
         return self
 
     def predict(self, X):
-        return np.argmax(self.U, axis=1)
+        membership_calc = FuzzyMemberships(self.kernel)
+        U_new = membership_calc.compute(X, self.G, self.m)
+        
+        return np.argmax(U_new, axis=1)
+
 
     def get_cost_history(self):
         return np.array(self.cost_history)
 
 # execution example:
-np.random.seed(24)
-X = np.random.rand(8, 3)
+# np.random.seed(24)
+# X = np.random.rand(8, 3)
+# X_test = np.random.rand(4, 3)
 
-model = KFCM_K_W_1(n_clusters=3, m=2.0, max_iter=50, tol=1e-6, random_state=24)
-model.fit(X)
+# model = KFCM_K_W_1(n_clusters=3, m=2.0, max_iter=50, tol=1e-6, random_state=24)
+# model.fit(X)
 
-print("\nFinal widths (s):", model.s)
-print("Final prototypes (G):\n", model.G)
-print("Final membership matrix (U):\n", model.U)
-print("Cost history:\n", model.get_cost_history())
+# print("pred", model.predict(X_test))
+
+# print("\nFinal widths (s):", model.s)
+# print("Final prototypes (G):\n", model.G)
+# print("Final membership matrix (U):\n", model.U)
+# print("Cost history:\n", model.get_cost_history())
