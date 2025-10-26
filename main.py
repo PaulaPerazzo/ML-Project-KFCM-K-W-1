@@ -26,7 +26,7 @@ X_test_scaled = scaler.transform(X_test)
 X_val_scaled = scaler.transform(X_val)
 
 # data training
-model = KFCM_K_W_1(n_clusters=9, m=2, max_iter=50)
+model = KFCM_K_W_1(n_clusters=9, m=1.1, max_iter=50) # the paper sets param m to 1.1
 model.fit(X_train_scaled)
 
 # train evaluation
