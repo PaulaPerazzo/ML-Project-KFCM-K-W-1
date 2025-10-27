@@ -3,7 +3,7 @@ from utils import KernelFunction, KernelWidthParameters, FuzzyClusterPrototypes,
 import numpy as np
 
 class KFCM_K_W_1:
-    def __init__(self, n_clusters, m=2.0, max_iter=100, tol=1e-5, random_state=None):
+    def __init__(self, n_clusters, m=2.0, max_iter=100, tol=1e-6, random_state=None):
         self.c = n_clusters
         self.m = m
         self.max_iter = max_iter
@@ -68,9 +68,9 @@ class KFCM_K_W_1:
             print(f"[Iter {t+1}] J_old={J_old:.6f}  J_new={J_new:.6f}  Δ={abs(J_new - J_old):.6e}")
 
             # stop criterion
-            # if abs(J_new - J_old) < self.tol:
-            #     print(f"convergence in {t+1} iterations (ΔJ < {self.tol})")
-            #     break
+            if abs(J_new - J_old) < self.tol:
+                print(f"convergence in {t+1} iterations (ΔJ < {self.tol})")
+                break
 
             J_old = J_new
 
@@ -80,6 +80,7 @@ class KFCM_K_W_1:
         membership_calc = FuzzyMemberships(self.kernel)
         U_new = membership_calc.compute(X, self.G, self.m)
         
+        # crisp partition
         return np.argmax(U_new, axis=1)
 
 
