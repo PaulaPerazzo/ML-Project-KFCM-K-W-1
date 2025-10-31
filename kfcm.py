@@ -10,7 +10,7 @@ class KFCM_K_W_1:
     self.tol = tol
     
     if random_state is not None:
-      np.random.seed(random_state)
+      self.rng = np.random.default_rng(random_state)
 
     self.s = None
     self.kernel = None
@@ -27,7 +27,7 @@ class KFCM_K_W_1:
     self.kernel = KernelFunction(self.s)
 
     # random prototypes selection c
-    idx = np.random.choice(n, self.c, replace=False)
+    idx = self.rng.choice(n, self.c, replace=False)
     self.G = X[idx, :]
 
     # compute the membership degree u_ki using Equation (16a)

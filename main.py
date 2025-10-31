@@ -1,20 +1,19 @@
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import silhouette_score, adjusted_rand_score
+from joblib import Parallel, delayed
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 
 from kfcm import KFCM_K_W_1
 
 # load train set
-train_data = pd.read_csv("data/yeast_train.csv")
+df = pd.read_csv("data/yeast.csv")
 
-X_train = train_data.drop(columns=["Class", "Sequence Name"])
-y_train = LabelEncoder().fit_transform(train_data["Class"])
+X = df.drop(columns=["Class", "Sequence Name"])
 
 # normalize
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
+X_train_scaled = scaler.fit_transform(X)
 
 # Executar o algoritmo KFCM-K-W-1 50 vezes para cada K, sendo K ∈ {2, 3, 4, 5, 6, 7, 8, 9, 10}. 
 K_clusters = range(2, 11)
@@ -23,59 +22,46 @@ n_runs = 50
 # store rsults
 results = []
 
-best_sil_scores = {}
-best_models = {}
+def evaluate_run(k, run, X_train_scaled):
+  model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100, random_state=((1000 * k) + run + 1))
+  model.fit(X_train_scaled)
+
+  cost = model.get_cost_history()[-1]
+  return {"run": run, "cost": cost, "model": model}
 
 for k in K_clusters:
   print(f"for k={k}: ")
 
-  best_cost = 999999
-  best_model = None
-  best_labels = None
-  best_sil = -1
-  best_run = -1
+  results_k = Parallel(n_jobs=-3)(
+    delayed(evaluate_run)(k, run, X_train_scaled)
+    for run in range(n_runs)
+  )
 
-  for run in range(n_runs):
-    model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100)
-    model.fit(X_train_scaled)
+  best = min(results_k, key=lambda r: r["cost"])
 
-    labels = model.predict(X_train_scaled)
+  labels = best["model"].predict(X_train_scaled)
+  sil = silhouette_score(X_train_scaled, labels)
 
-    # Calcular a silhueta (Sil) para cada K e partição crisp. 
-    try:
-      sil = silhouette_score(X_train_scaled, labels)
-    except:
-      continue
+  print(f"best sil for k={k}: {sil:.4f} (run {best['run']+1})")
 
-    current_cost = model.get_cost_history()[-1]
-
-    if current_cost < best_cost:  
-      best_cost = current_cost
-      best_model = model
-      best_labels = labels
-      best_sil = sil
-      best_run = run + 1
-
-  best_models[k] = best_model
-  best_sil_scores[k] = best_sil
-  
-  print(f"best sil for k={k}: {best_sil:.4f} (run {best_run})")
-
-  # Selecionar (e salvar) o melhor resultado para cada K. 
   results.append({
-    "K": k,
-    "Best_Silhouette": best_sil,
-    "Best_Cost": best_cost,
-    "Best_Run": best_run
+    "k": k,
+    "silhouette": sil,
+    "cost": best["cost"],
+    "model": best["model"],
+    "run": best["run"] + 1
   })
 
 # save csv
-results_df = pd.DataFrame(results)
+results_df = pd.DataFrame([{k: v for k, v in d.items() if k != "model"} for d in results])
 results_df.to_csv("results_kfcm_yeast.csv", index=False)
+
+best = max(results, key=lambda r: r["silhouette"])
+print(f'The best model was for K={best["k"]}. The values of cost are: {best["model"].get_cost_history()}')
 
 # Fazer o plot Sil × K para cada K
 plt.figure(figsize=(8,5))
-plt.plot(list(best_sil_scores.keys()), list(best_sil_scores.values()), marker="o")
+plt.plot(list([res["k"] for res in results]), list([res["silhouette"] for res in results]), marker="o")
 plt.title("Silhouette × Número de Clusters (K)")
 plt.xlabel("K")
 plt.ylabel("Silhouette Score")
