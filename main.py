@@ -27,47 +27,47 @@ best_sil_scores = {}
 best_models = {}
 
 for k in K_clusters:
-    print(f"for k={k}: ")
+  print(f"for k={k}: ")
 
-    best_cost = 999999
-    best_model = None
-    best_labels = None
-    best_sil = -1
-    best_run = -1
+  best_cost = 999999
+  best_model = None
+  best_labels = None
+  best_sil = -1
+  best_run = -1
 
-    for run in range(n_runs):
-        model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100)
-        model.fit(X_train_scaled)
+  for run in range(n_runs):
+    model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100)
+    model.fit(X_train_scaled)
 
-        labels = model.predict(X_train_scaled)
+    labels = model.predict(X_train_scaled)
 
-        # Calcular a silhueta (Sil) para cada K e partição crisp. 
-        try:
-            sil = silhouette_score(X_train_scaled, labels)
-        except:
-            continue
+    # Calcular a silhueta (Sil) para cada K e partição crisp. 
+    try:
+      sil = silhouette_score(X_train_scaled, labels)
+    except:
+      continue
 
-        current_cost = model.get_cost_history()[-1]
+    current_cost = model.get_cost_history()[-1]
 
-        if current_cost < best_cost:  
-            best_cost = current_cost
-            best_model = model
-            best_labels = labels
-            best_sil = sil
-            best_run = run + 1
+    if current_cost < best_cost:  
+      best_cost = current_cost
+      best_model = model
+      best_labels = labels
+      best_sil = sil
+      best_run = run + 1
 
-    best_models[k] = best_model
-    best_sil_scores[k] = best_sil
-    
-    print(f"best sil for k={k}: {best_sil:.4f} (run {best_run})")
+  best_models[k] = best_model
+  best_sil_scores[k] = best_sil
+  
+  print(f"best sil for k={k}: {best_sil:.4f} (run {best_run})")
 
-    # Selecionar (e salvar) o melhor resultado para cada K. 
-    results.append({
-        "K": k,
-        "Best_Silhouette": best_sil,
-        "Best_Cost": best_cost,
-        "Best_Run": best_run
-    })
+  # Selecionar (e salvar) o melhor resultado para cada K. 
+  results.append({
+    "K": k,
+    "Best_Silhouette": best_sil,
+    "Best_Cost": best_cost,
+    "Best_Run": best_run
+  })
 
 # save csv
 results_df = pd.DataFrame(results)
