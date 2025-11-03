@@ -42,13 +42,13 @@ class KernelFunction:
 # ---------- WIDTH PARAMS CLASS ---------- #
 
 class KernelWidthParameters:
-  def __init__(self, kernel):
+  def __init__(self, kernel, s_sums_history):
     """"
     Eq. (14)
     """
-    self.kernel = kernel
+    self.kernel, self.s_sums_history = kernel, np.asarray(s_sums_history, dtype=float)
 
-  def compute(self, X, G, U, m):
+  def compute(self, X, G, U, m, threshold=1e-10):
     """
     s_j width
 
@@ -81,20 +81,13 @@ class KernelWidthParameters:
           weight = (U[k, i] ** m) * K_matrix[k, i]
           denom += weight * (X[k, j] - G[i, j]) ** 2
 
-      denominator_terms[j] = denom
+      denominator_terms[j] = denom if denom > threshold else max(denom, self.s_sums_history[-1, j])
 
     # product of all terms
     product_term = 1.0
 
     for h in range(p):
-      term_h = 0.0
-  
-      for i in range(c):
-        for k in range(n):
-          weight = (U[k, i] ** m) * K_matrix[k, i]
-          term_h += weight * (X[k, h] - G[i, h]) ** 2
-  
-      product_term *= term_h
+      product_term *= denominator_terms[h]
 
     numerator_root = product_term ** (1.0 / p)
 
@@ -102,7 +95,7 @@ class KernelWidthParameters:
     inv_s_sq = numerator_root / denominator_terms
     s = 1.0 / np.sqrt(inv_s_sq)
     
-    return s
+    return (s, denominator_terms)
 
 
 # ---------- compute fuzzy clusters prototypes ---------- #
@@ -177,7 +170,7 @@ class FuzzyMemberships:
 
     returns new matrix
     """
-    n, p = X.shape
+    n, _ = X.shape
     c = G.shape[0]
     U_new = np.zeros((n, c))
 
@@ -185,28 +178,22 @@ class FuzzyMemberships:
 
     for k in range(n):
       for i in range(c):
-        Kxg[k, i] = min(self.kernel(X[k], G[i]), 1 - 1e-10)
+        Kxg[k, i] = self.kernel(X[k], G[i])
 
     # each u_ki
     for k in range(n):
       for i in range(c):
-        num = 2 - 2 * Kxg[k, i]
-        denom_sum = 0.0
+        summation = 0.0
+
+        if np.array_equal(G[i], X[k]):
+          U_new[k] = np.eye(c, dtype=float)[i]
+          break
         
         for h in range(c):
-          denom = 2 - 2 * Kxg[k, h]
-          denom = max(denom, 1e-12) # small number to avoid 0 divisions
+          if np.array_equal(G[h], X[k]): summation += 0
+          else: summation += ((2 - 2 * Kxg[k, i])/(2 - 2 * Kxg[k, h])) ** (1/(m-1))
 
-          if m != 1.0:
-            denom_sum += (num / denom) ** (1.0 / (m - 1))
-
-          if m == 1.0:
-            denom_sum += (num / denom) ** (1.0 / 1e-12)
-
-        U_new[k, i] = 1.0 / denom_sum
-
-    # nromalization
-    U_new /= U_new.sum(axis=1, keepdims=True)
+        U_new[k, i] = 1.0 / summation
 
     return U_new
     
