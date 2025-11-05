@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from joblib import Parallel, delayed
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
@@ -23,7 +24,7 @@ n_runs = 50
 results = []
 
 def evaluate_run(k, run, X_train_scaled):
-  model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100, random_state=((1000 * k) + run + 1))
+  model = KFCM_K_W_1(n_clusters=k, m=1.1, max_iter=100, random_state=((100 * k) + run + 1))
   model.fit(X_train_scaled)
 
   cost = model.get_cost_history()[-1]
@@ -46,18 +47,22 @@ for k in K_clusters:
 
   results.append({
     "k": k,
+    "labels": labels,
     "silhouette": sil,
     "cost": best["cost"],
     "model": best["model"],
-    "run": best["run"] + 1
+    "run": best["run"] + 1,
   })
 
 # save csv
 results_df = pd.DataFrame([{k: v for k, v in d.items() if k != "model"} for d in results])
-results_df.to_csv("results_kfcm_yeast.csv", index=False)
+results_df.to_csv("results/best_cost_for_every_k.csv", index=False)
 
 best = max(results, key=lambda r: r["silhouette"])
-print(f'The best model was for K={best["k"]}. The values of cost are: {best["model"].get_cost_history()}')
+print(f'The best model was for K={best["k"]} in the run {best["run"]}. The values of cost are: {best["model"].get_cost_history()}')
+
+np.savetxt("results/cost_history.txt", best["model"].get_cost_history())
+np.savetxt("results/crisp_partition.txt", best["labels"])
 
 # Fazer o plot Sil × K para cada K
 plt.figure(figsize=(8,5))
@@ -66,6 +71,6 @@ plt.title("Silhouette × Número de Clusters (K)")
 plt.xlabel("K")
 plt.ylabel("Silhouette Score")
 plt.grid(True)
-plt.savefig("plot_silhouette_vs_K.png")
+plt.savefig("results/silhouette_vs_K.png")
 plt.show()
 
